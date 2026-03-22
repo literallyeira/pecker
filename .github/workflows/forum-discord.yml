@@ -7,6 +7,9 @@
 
 name: Forum → Discord
 
+# Run listesinde tetikleyiciyi görmek için: "schedule" = otomatik 10 dk, "workflow_dispatch" = elle
+run-name: "${{ github.event_name }} · #${{ github.run_number }}"
+
 on:
   schedule:
     # Her 10 dakika (UTC)
@@ -31,6 +34,12 @@ jobs:
 
       - name: Bağımlılıklar
         run: pip install -r requirements.txt
+
+      - name: Ne zaman / nasıl tetiklendi
+        run: |
+          echo "### Çalışma özeti" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **event:** \`${{ github.event_name }}\` (schedule = zamanlayıcı, workflow_dispatch = elle)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **UTC:** $(date -u '+%Y-%m-%d %H:%M:%S')" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Konuyu kontrol et ve Discord'a bildir
         env:
