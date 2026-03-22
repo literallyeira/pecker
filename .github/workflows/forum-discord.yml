@@ -1,20 +1,25 @@
-# Ücretsiz: GitHub Actions zamanlayıcı (her 10 dk, UTC).
-# Repo sırları: Settings → Secrets and variables → Actions
-#   DISCORD_WEBHOOK_URL, TOPIC_URL, FORUM_COOKIE (tarayıcı Cookie satırı, tek satır)
+# Ücretsiz: GitHub Actions.
+# Sırlar: Settings → Secrets → Actions → DISCORD_WEBHOOK_URL, TOPIC_URL, FORUM_COOKIE
 #
-# Kamu (public) repoda dakika limiti pratikte sorun olmaz. Özel repoda aylık dakika kotası var.
-# İlk push’tan sonra state dosyası güncellenince bot commit atar; [skip ci] ile sonsuz döngü yok.
+# schedule: GitHub bazen geciktirir / fork’ta kapalı olabilir.
+# repository_dispatch (forum_poll): GitHub schedule güvenilmezse cron-job.org ile POST:
+#   curl -sS -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer GITHUB_TOKEN" \
+#     https://api.github.com/repos/literallyeira/pckwoods/dispatches -d '{"event_type":"forum_poll"}'
+#   Classic PAT: repo (veya public repo için public_repo). Fine-grained: Contents read + Metadata.
+# İlk push’tan sonra state commit’i [skip ci] ile sonsuz döngü yok.
 
 name: Forum → Discord
 
-# Run listesinde tetikleyiciyi görmek için: "schedule" = otomatik 10 dk, "workflow_dispatch" = elle
+# schedule | workflow_dispatch | repository_dispatch
 run-name: "${{ github.event_name }} · #${{ github.run_number }}"
 
 on:
   schedule:
-    # Her 10 dakika (UTC)
-    - cron: "*/5 * * * *"
+    # Her 10 dk (UTC). GitHub yoğunlukta geciktirir; kesin sıklık için repository_dispatch + cron-job.org kullan.
+    - cron: "*/10 * * * *"
   workflow_dispatch:
+  repository_dispatch:
+    types: [forum_poll]
 
 concurrency:
   group: forum-discord-monitor
@@ -40,7 +45,7 @@ jobs:
       - name: Ne zaman / nasıl tetiklendi
         run: |
           echo "### Çalışma özeti" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **event:** \`${{ github.event_name }}\` (schedule = zamanlayıcı, workflow_dispatch = elle)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **event:** \`${{ github.event_name }}\` (schedule | workflow_dispatch | repository_dispatch)" >> "$GITHUB_STEP_SUMMARY"
           echo "- **UTC:** $(date -u '+%Y-%m-%d %H:%M:%S')" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Konuyu kontrol et ve Discord'a bildir
