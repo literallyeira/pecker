@@ -55,10 +55,43 @@
 
   9) Kaydet / Save / Create
 
- 10) İlk test: "Run now" / "Test" / "Execute now" varsa bir kez tıkla
+ 10) İlk test — cron-job.org'da "Run now" her hesapta yok; bulamazsan sorun değil.
+     Aşağıdaki A veya B yeterli.
 
- 11) GitHub → repo → Actions → "Forum → Discord" workflow'unda YENİ bir koşu
-     oluştu mu bak. Tetikleyici: repository_dispatch olmalı.
+================================================================================
+  TEST — EN KOLAY (PC'den, PowerShell)
+================================================================================
+
+  PowerShell aç. TOKEN yerine GitHub classic PAT (ghp_...) yapıştır:
+
+  curl.exe -sS -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer TOKEN" "https://api.github.com/repos/literallyeira/pckwoods/dispatches" -d "{\"event_type\":\"forum_poll\"}"
+
+  (İstersen CMD kullan: aynı satır, TOKEN'ı değiştir.)
+
+  PowerShell'de tırnak kaçması zorsa bu iki satır:
+
+  $t="BURAYA_TOKEN"
+  curl.exe -sS -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $t" "https://api.github.com/repos/literallyeira/pckwoods/dispatches" -d '{"event_type":"forum_poll"}'
+
+  Başarılıysa ekranda boş veya 204 benzeri çıkar; hata varsa JSON hata yazar.
+
+  Sonra GitHub → Actions → "Forum → Discord" → en üstteki koşuda
+  başlıkta "repository_dispatch" yazmalı.
+
+================================================================================
+  TEST — GitHub üzerinden (cron-job değil, ama script çalışıyor mu görürsün)
+================================================================================
+
+  Repo → Actions → sol menü "Forum → Discord" → sağ üst "Run workflow" → Run.
+  Bu sefer tetikleyici "workflow_dispatch" olur; yine aynı işi yapar (forum kontrolü).
+
+================================================================================
+  cron-job.org'da manuel tetik arıyorsan
+================================================================================
+
+  console.cron-job.org → Cronjobs listesi → işinin satırında:
+  ► oynat ikonu, "Execute", üç nokta menüsü — siteye göre değişir.
+  Yoksa 10 dakika bekle; veya yukarıdaki PowerShell ile test et.
 
 ================================================================================
   ÇALIŞMIYORSA
