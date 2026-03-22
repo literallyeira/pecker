@@ -1,0 +1,4 @@
+.env
+__pycache__/
+*.pyc
+.forum_monitor_state.json

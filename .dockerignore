@@ -1,0 +1,9 @@
+.env
+.git
+.gitignore
+*.bat
+__pycache__
+*.pyc
+.forum_monitor_state.json
+.cursor
+*.md

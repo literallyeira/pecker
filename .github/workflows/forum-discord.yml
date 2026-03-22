@@ -1,0 +1,54 @@
+# Ücretsiz: GitHub Actions zamanlayıcı (her 10 dk, UTC).
+# Repo sırları: Settings → Secrets and variables → Actions
+#   DISCORD_WEBHOOK_URL, TOPIC_URL, FORUM_COOKIE (tarayıcı Cookie satırı, tek satır)
+#
+# Kamu (public) repoda dakika limiti pratikte sorun olmaz. Özel repoda aylık dakika kotası var.
+# İlk push’tan sonra state dosyası güncellenince bot commit atar; [skip ci] ile sonsuz döngü yok.
+
+name: Forum → Discord
+
+on:
+  schedule:
+    # Her 10 dakika (UTC)
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: forum-discord-monitor
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bağımlılıklar
+        run: pip install -r requirements.txt
+
+      - name: Konuyu kontrol et ve Discord'a bildir
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TOPIC_URL: ${{ secrets.TOPIC_URL }}
+          COOKIE: ${{ secrets.FORUM_COOKIE }}
+          STATE_FILE: ${{ github.workspace }}/data/forum_monitor_state.json
+          POLL_INTERVAL: "600"
+        run: python forum_discord_webhook.py --once
+
+      - name: State dosyasını repoya yaz
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/forum_monitor_state.json
+          if git diff --cached --quiet; then
+            echo "State değişmedi."
+          else
+            git commit -m "chore: forum monitor state [skip ci]"
+            git push
+          fi
