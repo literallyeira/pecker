@@ -40,18 +40,22 @@
        Value: application/vnd.github+json
 
      İkinci satır:
+       Name:  Content-Type
+       Value: application/json
+
+     Üçüncü satır:
        Name:  Authorization
        Value: Bearer BURAYA_TOKEN_YAPIŞTIR
-       (Bearer kelimesinden sonra bir boşluk, sonra GitHub'dan aldığın PAT)
 
-     Örnek Value:
-       Bearer ghp_xxxxxxxxxxxxxxxxxxxx
+     (Bearer + boşluk + ghp_...)
 
   8) Body / Payload / Request body (İstek gövdesi):
-     Tür: JSON / raw / application/json seç
-     İçerik (tam olarak):
+     Tür: JSON / raw — içerik tipi mutlaka JSON
+     İçerik (tam olarak, tek satır):
 
        {"event_type":"forum_poll"}
+
+     Content-Type header'ı olmadan GitHub "Problems parsing JSON" döndürebilir.
 
   9) Kaydet / Save / Create
 
@@ -59,24 +63,30 @@
      Aşağıdaki A veya B yeterli.
 
 ================================================================================
-  TEST — EN KOLAY (PC'den, PowerShell)
+  TEST — EN KOLAY (PC'den, PowerShell)  —  "Problems parsing JSON" çözümü
 ================================================================================
 
-  PowerShell aç. TOKEN yerine GitHub classic PAT (ghp_...) yapıştır:
+  GitHub gövdeyi JSON sanmazsa 400 verir. Content-Type: application/json şart.
+  PowerShell'de en sorunsuz yöntem Invoke-RestMethod:
 
-  curl.exe -sS -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer TOKEN" "https://api.github.com/repos/literallyeira/pckwoods/dispatches" -d "{\"event_type\":\"forum_poll\"}"
+  $token = "ghp_BURAYA_TOKEN_YAPIŞTIR"
+  $uri = "https://api.github.com/repos/literallyeira/pckwoods/dispatches"
+  $headers = @{
+    Authorization = "Bearer $token"
+    Accept = "application/vnd.github+json"
+  }
+  Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body '{"event_type":"forum_poll"}' -ContentType "application/json"
 
-  (İstersen CMD kullan: aynı satır, TOKEN'ı değiştir.)
+  Başarılıysa genelde çıktı boş veya 204; hata olursa kırmızı metin gelir.
 
-  PowerShell'de tırnak kaçması zorsa bu iki satır:
+  ---
 
-  $t="BURAYA_TOKEN"
-  curl.exe -sS -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $t" "https://api.github.com/repos/literallyeira/pckwoods/dispatches" -d '{"event_type":"forum_poll"}'
+  curl.exe kullanacaksan (Content-Type şart; gövde tek tırnaklı JSON):
 
-  Başarılıysa ekranda boş veya 204 benzeri çıkar; hata varsa JSON hata yazar.
+  $t="ghp_..."
+  curl.exe -sS -X POST -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" -H "Authorization: Bearer $t" --data-raw '{"event_type":"forum_poll"}' "https://api.github.com/repos/literallyeira/pckwoods/dispatches"
 
-  Sonra GitHub → Actions → "Forum → Discord" → en üstteki koşuda
-  başlıkta "repository_dispatch" yazmalı.
+  Sonra GitHub → Actions → "Forum → Discord" → yeni koşuda "repository_dispatch".
 
 ================================================================================
   TEST — GitHub üzerinden (cron-job değil, ama script çalışıyor mu görürsün)
