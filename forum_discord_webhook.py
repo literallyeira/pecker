@@ -531,9 +531,13 @@ def run_once(
     new_ids = sorted(current_ids - seen)
 
     if not seen:
-        # İlk çalıştırma: mevcut iletileri kaydet, bildirim gönderme
+        # İlk çalıştırma (baz): mevcut iletileri kaydet. BASELINE_SEND_LATEST=1 ise en son iletiyi de Discord'a at.
         state["seen_ids"] = sorted(current_ids)
         save_state(state_path, state)
+        if os.environ.get("BASELINE_SEND_LATEST", "").strip().lower() in ("1", "true", "yes"):
+            latest = max(posts, key=lambda p: p["id"])
+            send_discord(webhook_url, topic_title, latest)
+            print(f"Baz + son ileti bildirildi: #{latest['id']} — {latest.get('author', '?')}")
         return []
 
     notifications: list[dict[str, Any]] = []

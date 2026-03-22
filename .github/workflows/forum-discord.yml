@@ -39,6 +39,8 @@ jobs:
           COOKIE: ${{ secrets.FORUM_COOKIE }}
           STATE_FILE: ${{ github.workspace }}/data/forum_monitor_state.json
           POLL_INTERVAL: "600"
+          # İlk kez seen_ids boşsa: baz çiz + son iletiyi Discord'a at (sadece o tur)
+          BASELINE_SEND_LATEST: "1"
         run: python forum_discord_webhook.py --once
 
       - name: State dosyasını repoya yaz

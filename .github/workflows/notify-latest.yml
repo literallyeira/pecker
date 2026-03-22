@@ -1,0 +1,41 @@
+# Elle çalıştır: son iletiyi bir kez Discord'a gönderir, state güncellenir.
+# Actions → "Son ileti → Discord (elle)" → Run workflow
+
+name: Son ileti → Discord (elle)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  once:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Son iletiyi gönder
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TOPIC_URL: ${{ secrets.TOPIC_URL }}
+          COOKIE: ${{ secrets.FORUM_COOKIE }}
+          STATE_FILE: ${{ github.workspace }}/data/forum_monitor_state.json
+        run: python forum_discord_webhook.py --notify-latest
+
+      - name: State commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/forum_monitor_state.json
+          if git diff --cached --quiet; then
+            echo "State değişmedi."
+          else
+            git commit -m "chore: forum state after notify-latest [skip ci]"
+            git push
+          fi
