@@ -6,6 +6,10 @@ name: Son ileti → Discord (elle)
 on:
   workflow_dispatch:
 
+concurrency:
+  group: forum-discord-monitor
+  cancel-in-progress: false
+
 jobs:
   once:
     runs-on: ubuntu-latest
@@ -13,6 +17,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -37,5 +43,6 @@ jobs:
             echo "State değişmedi."
           else
             git commit -m "chore: forum state after notify-latest [skip ci]"
-            git push
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "${GITHUB_REF_NAME}"
           fi

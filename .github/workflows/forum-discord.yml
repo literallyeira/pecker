@@ -27,6 +27,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -61,5 +63,7 @@ jobs:
             echo "State değişmedi."
           else
             git commit -m "chore: forum monitor state [skip ci]"
-            git push
+            # Uzak main ilerlediyse (diğer workflow / senin push'un) önce rebase
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "${GITHUB_REF_NAME}"
           fi
