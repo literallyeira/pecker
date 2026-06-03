@@ -14,9 +14,9 @@ name: Forum → Discord
 run-name: "${{ github.event_name }} · #${{ github.run_number }}"
 
 on:
-  schedule:
-    # Her 5 dk (UTC). GitHub yoğunlukta geciktirir; kesin sıklık için repository_dispatch + cron-job.org kullan.
-    - cron: "*/5 * * * *"
+  # NOT: Otomatik 5 dk izleme artık monitor-loop.yml ile yapılıyor (kesintisiz self-loop).
+  # GitHub'ın schedule'ı 5 dk'da güvenilir tetiklenmediği için buradan kaldırıldı.
+  # Bu workflow elle tek kontrol / yedek olarak kalır.
   workflow_dispatch:
   repository_dispatch:
     types: [forum_poll]

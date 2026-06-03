@@ -1,0 +1,80 @@
+# Kesintisiz izleyici (self-loop).
+# Tek iş açar, içinde her 5 dk'da bir foruma bakar. GitHub işleri ~6 saatte
+# bittiği için, iş kendini ~5h40'ta yeniden tetikler (repository_dispatch).
+# Public repo => Actions dakikaları sınırsız/bedava.
+#
+# Gerekli secret'lar: DISCORD_WEBHOOK_URL, TOPIC_URL, FORUM_COOKIE
+# + REPO_DISPATCH_TOKEN (repo scope'lu PAT; kendini yeniden tetiklemek için —
+#   GITHUB_TOKEN ile tetiklenen olaylar yeni çalışma BAŞLATMAZ, o yüzden ayrı token).
+
+name: Forum izleyici (kesintisiz)
+
+run-name: "loop · ${{ github.event_name }} · #${{ github.run_number }}"
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [monitor_keepalive]
+  schedule:
+    # Emniyet ağı: döngü herhangi bir sebeple ölür ve re-dispatch çalışmazsa,
+    # en geç 3 saatte yeniden başlasın. (concurrency tek seferde tek döngü garantisi verir.)
+    - cron: "0 */3 * * *"
+
+concurrency:
+  group: forum-discord-monitor
+  cancel-in-progress: false
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: 5 dk döngü
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TOPIC_URL: ${{ secrets.TOPIC_URL }}
+          COOKIE: ${{ secrets.FORUM_COOKIE }}
+          STATE_FILE: ${{ github.workspace }}/data/forum_monitor_state.json
+        run: |
+          set -u
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          END=$(( $(date +%s) + 340*60 ))   # ~5h40, 6 saat limitinin altında
+          while [ "$(date +%s)" -lt "$END" ]; do
+            echo "::group::Kontrol $(date -u '+%H:%M:%S') UTC"
+            python forum_discord_webhook.py --once || echo "tur hatasi (yok sayildi)"
+            git add data/forum_monitor_state.json || true
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: forum state [skip ci]" || true
+              git pull --rebase origin "${GITHUB_REF_NAME}" || true
+              git push origin "${GITHUB_REF_NAME}" || true
+            else
+              echo "State degismedi."
+            fi
+            echo "::endgroup::"
+            sleep 300
+          done
+
+      - name: Kendini yeniden başlat
+        if: always()
+        env:
+          DISPATCH_TOKEN: ${{ secrets.REPO_DISPATCH_TOKEN }}
+        run: |
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${DISPATCH_TOKEN}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
+            -d '{"event_type":"monitor_keepalive"}' \
+            && echo "Yeniden tetiklendi." || echo "Re-dispatch basarisiz."
